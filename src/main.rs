@@ -265,9 +265,9 @@ mod game_field {
                     }
                     Event::FocusGained => todo!(),
                     Event::FocusLost => todo!(),
-                    Event::Mouse(_) => todo!(),
+                    Event::Mouse(_) => {continue;},
                     Event::Paste(_) => todo!(),
-                    Event::Resize(_, _) => todo!(),
+                    Event::Resize(_, _) => {continue;},
                 }
             }
             let food_spawn = rand::random_range(0..9);
