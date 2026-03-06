@@ -1,11 +1,16 @@
+use std::io;
+
 fn main(){
+    println!("Тыкни enter, чтобы начать...");
+    io::stdin().read_line(&mut String::new()).expect("Failed to read line");
+
     let _ = crate::game_field::start_game();
 }
 
 mod game_field {
     use std::{io::{self, Stdout, Write}, time::Duration};
 
-    use crossterm::{ExecutableCommand, event::{ Event, KeyCode, poll, read}, terminal::{Clear, ClearType, disable_raw_mode, enable_raw_mode}};
+    use crossterm::{ExecutableCommand, cursor::{Hide, MoveTo, Show}, event::{ Event, KeyCode, poll, read}, execute, style::Print, terminal::{Clear, ClearType, disable_raw_mode, enable_raw_mode}};
 
     const SIZE: i8 = 32+2;
     use std::{collections::LinkedList};
@@ -164,7 +169,7 @@ mod game_field {
         } else {return 0}
     }
 
-    pub fn draw(snake: &Snake, stdout: &mut Stdout, all_food: &mut FoodObj) {
+    pub fn draw(snake: &Snake, stdout: &mut Stdout, all_food: &mut FoodObj) -> Result<(), Box<dyn std::error::Error>> {
         let _ = write!(stdout, "\rSnake length: {:?}\n", snake.get_snake_len());
         for i in 0..SIZE  {
             let mut line: String = "".to_string();
@@ -211,19 +216,26 @@ mod game_field {
                 }
                 
             }
-            let _ = write!(stdout, "\r\n{:?}", line);
+            execute!(
+                stdout,
+                Print("\r\n".to_string() + &line.clone())
+            )?;
             let _ = stdout.flush();
         }
+        return Ok(());
         
     }
     pub fn start_game() -> std::io::Result<()> {
-        enable_raw_mode()?;
         let mut stdout = io::stdout();
         let mut snake = Snake::new();
         let mut all_food: FoodObj = FoodObj::new();
+        enable_raw_mode()?;
+        stdout.execute(Clear(ClearType::All))?;
+        stdout.execute(Hide)?;
         snake.add_head();
         snake.add_tail();
         loop {
+            
             if poll(Duration::from_millis(400))? {
                 match read()? {
                     Event::Key(event) => {
@@ -264,8 +276,6 @@ mod game_field {
             }
 
 
-            stdout.execute(Clear(ClearType::All))?;
-
             if !snake.make_step() {
                 break
             }
@@ -273,9 +283,12 @@ mod game_field {
                 snake.add_tail();
                 all_food.remove(snake.get_head_coords());
             }   
-            draw(&snake, &mut stdout, &mut all_food);
+            stdout.execute(MoveTo(0, 0))?;
+            let _ = draw(&snake, &mut stdout, &mut all_food);
             
         }
+        stdout.execute(Clear(ClearType::All))?;
+        stdout.execute(Show)?;
         disable_raw_mode()?;
         Ok(())
     }
